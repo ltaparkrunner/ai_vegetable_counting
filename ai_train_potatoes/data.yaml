@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['potato']
+
+roboflow:
+  workspace: alex-lrt11
+  project: potato-pile-counter
+  version: 1
+  license: Private
+  url: https://app.roboflow.com/alex-lrt11/potato-pile-counter/1
