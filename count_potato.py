@@ -5,6 +5,28 @@ import numpy as np
 import torch
 from ultralytics import YOLO
 
+
+def get_compute_device():
+    """Check if a GPU exists and can execute a real Conv2d operation."""
+    if not torch.cuda.is_available():
+        print("⚙️ No GPU detected. Falling back to CPU.")
+        return "cpu"
+
+    try:
+        device_name = torch.cuda.get_device_name(0)
+        # Run a quick FP32 convolution test to verify ROCm/CUDA kernels work
+        x = torch.randn(1, 3, 32, 32, device="cuda")
+        conv = torch.nn.Conv2d(3, 8, kernel_size=3).to("cuda")
+        _ = conv(x)
+        torch.cuda.synchronize()
+        print(f"⚙️ GPU verified and functional: {device_name} (device=0)")
+        return 0
+    except Exception as e:
+        print(f"⚠️ GPU detected ({torch.cuda.get_device_name(0)}), but functional test failed: {e}")
+        print("⚙️ Falling back to CPU.")
+        return "cpu"
+
+
 # 1. Path to the trained model weights and input image
 model_path = "runs/segment/train-2/weights/best.pt"
 image_path = "potatoes_2.jpg"
@@ -13,21 +35,18 @@ if not os.path.exists(model_path) or not os.path.exists(image_path):
     print(f"❌ Error: Check your file paths!\nModel: {model_path}\nImage: {image_path}")
     sys.exit(1)
 
-# 2. Automatically select GPU (device=0) if ROCm/CUDA is available, otherwise fall back to CPU
-device = 0 if torch.cuda.is_available() else "cpu"
-print(f"⚙️ Active device: {'GPU (' + torch.cuda.get_device_name(0) + ')' if device == 0 else 'CPU'}")
-
-# Load the model once outside the function to avoid reloading weights into GPU VRAM on every image
+# 2. Verify GPU functionality and load the model once
+compute_device = get_compute_device()
 model = YOLO(model_path)
 
 
 def count_potatoes(img_path):
-    # 3. Run inference on the GPU (FP32 is used by default in predict)
+    # 3. Run inference on the verified device (FP32 is used by default)
     results = model.predict(
         source=img_path,
         conf=0.25,
         iou=0.40,
-        device=device
+        device=compute_device
     )
     res = results[0]  # Extract the result object for the first image
 
