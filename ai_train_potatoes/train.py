@@ -2,30 +2,26 @@ import os
 from ultralytics import YOLO
 
 def start_training():
-    # 1. Выбираем базовую модель. 
-    # 'yolov8m.pt' — средняя модель, отлично подходит для точного подсчета в кучах.
-    # Если у вас слабая видеокарта, замените на 'yolov8n.pt' (nano).
-    model = YOLO("yolov8m-seg.pt") 
+    model = YOLO("yolov8n-seg.pt") 
     
-    # 2. Путь к файлу конфигурации (измените имя файла, если оно отличается)
-    yaml_path = "data.yaml" 
+    yaml_paths = ("ai_train_potatoes/data.yaml", "data.yaml")
+    yaml_path = next((p for p in yaml_paths if os.path.exists(p)), None)
     
-    if not os.path.exists(yaml_path):
-        print(f"❌ Ошибка: Файл '{yaml_path}' не найден в текущей директории!")
+    if not yaml_path:
+        print(f"❌ Ошибка: Ни один из файлов {yaml_paths} не найден!")
         return
 
-    print("🚀 Начинаем обучение модели на данных из Roboflow...")
+    print(f"🚀 Начинаем обучение на {yaml_path}...")
     
-    # 3. Запуск обучения
     model.train(
-        data=yaml_path,   # Путь к конфигурации датасета
-        epochs=50,        # Для маленького датасета (20-50 фото) 50-100 эпох вполне достаточно
-        imgsz=640,        # Стандартное разрешение картинок для YOLO
-        batch=16,         # Размер пакета. Если вылетит ошибка 'Out of Memory', уменьшите до 8 или 4
-        #device=0,         # Использовать GPU (видеокарту). Если её нет, замените на device='cpu'
-        device='cpu',
-        workers=2,        # Потоки загрузки данных
-        mosaic=1.0        # Важнейшая аугментация: склеивает фото, помогая считать плотные кучи
+        data=yaml_path,
+        epochs=50,
+        imgsz=640,
+        batch=4,
+        device=0,
+        amp=False,        # Ключевой параметр: отключает проблемный FP16 на Radeon 780M
+        workers=2,
+        mosaic=1.0
     )
     
     print("\n🎉 Обучение успешно завершено!")

@@ -221,3 +221,7 @@ ai_train_potatoes/train/labels.cache
 ai_train_potatoes/valid/labels.cache
 ai_train_potatoes/yolov8m-seg.pt
 counted_result.jpg
+comments.txt
+runs/
+yolov8m-seg.pt
+yolov8n-seg.pt
