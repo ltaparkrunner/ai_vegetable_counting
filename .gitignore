@@ -225,3 +225,5 @@ comments.txt
 runs/
 yolov8m-seg.pt
 yolov8n-seg.pt
+counted_result_sam.jpg
+sam2.1_b.pt
