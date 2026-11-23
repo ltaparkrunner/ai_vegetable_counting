@@ -1,4 +1,7 @@
 import os
+os.environ["MIOPEN_FIND_MODE"] = "2"
+os.environ["PYTORCH_HIP_ALLOC_CONF"] = "expandable_segments:True,max_split_size_mb:128"
+os.environ["HSA_OVERRIDE_GFX_VERSION"] = "11.0.0"
 import xml.etree.ElementTree as ET
 from pathlib import Path
 import cv2
@@ -10,14 +13,16 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision.models import resnet18, ResNet18_Weights
 
+import time
+
 # ================= НАСТРОЙКИ =================
 XML_PATH = "annotations.xml"
 IMAGES_DIR = "potato_piles"
 MODEL_SAVE_PATH = "potato_resnet18_native.pth"
 CROP_SIZE = 256                    # Размер вырезаемого квадрата в родном разрешении (1:1)
-CROPS_PER_IMAGE = 6                # Сколько случайных фрагментов брать с каждого фото за эпоху
-EPOCHS = 100
-BATCH_SIZE = 4
+CROPS_PER_IMAGE = 4 #6                # Сколько случайных фрагментов брать с каждого фото за эпоху
+EPOCHS = 60 #100
+BATCH_SIZE = 2 #4
 LR = 3e-4
 DENSITY_SCALE = 100.0
 # =============================================
@@ -261,8 +266,11 @@ def train():
             loss = criterion(preds, targets)
             loss.backward()
             optimizer.step()
+            torch.cuda.synchronize()
+            time.sleep(0.02)
             train_loss += loss.item()
 
+        torch.cuda.empty_cache()
         model.eval()
         val_mae = 0.0
         with torch.no_grad():
